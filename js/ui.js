@@ -1,8 +1,7 @@
 // ===== UI管理 =====
 const GameUI = {
-  zukanView: 'grid', // 'grid' or 'periodic'
+  zukanView: 'grid',
 
-  // 画面切り替え
   showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -11,15 +10,9 @@ const GameUI = {
   // ===== タイトル画面 =====
   showTitle() {
     this.showScreen('screen-title');
-    const data = Storage.load();
     const cardCount = Storage.getCardCount();
-    const total = 118;
     const progress = document.getElementById('title-progress');
-    if (cardCount > 0) {
-      progress.textContent = `図鑑: ${cardCount} / ${total} 枚`;
-    } else {
-      progress.textContent = '';
-    }
+    progress.textContent = cardCount > 0 ? `図鑑: ${cardCount} / 118 枚` : '';
   },
 
   // ===== ステージ選択画面 =====
@@ -62,9 +55,7 @@ const GameUI = {
     });
   },
 
-  // 星テキスト（3元素分、各最大★3）
   renderStarsText(totalStars) {
-    if (totalStars === 9) return '★★★★★★★★★';
     let s = '';
     for (let i = 0; i < totalStars; i++) s += '★';
     for (let i = totalStars; i < 9; i++) s += '☆';
@@ -75,59 +66,84 @@ const GameUI = {
   startStage(stageId) {
     Quiz.startStage(stageId);
     this.showScreen('screen-quiz');
-
     const stage = STAGES[stageId - 1];
     document.getElementById('quiz-stage-title').textContent = `STAGE ${stageId}: ${stage.name}`;
-    this.updateQuizProgress();
     this.renderQuiz();
   },
 
+  // ===== 進捗ドット =====
   updateQuizProgress() {
-    const total = 3;
     const current = Quiz.currentElementIndex + 1;
-    document.getElementById('quiz-progress').textContent = `${current} / ${total} 元素`;
+    document.getElementById('quiz-progress').textContent = `${current} / 3 元素`;
 
-    // ドット表示
     const dotContainer = document.getElementById('quiz-element-progress');
     dotContainer.innerHTML = '';
-    for (let i = 0; i < 9; i++) {
-      const dot = document.createElement('div');
-      dot.className = 'quiz-dot';
-      const elemIdx = Math.floor(i / 3);
-      const hintIdx = i % 3;
-      if (elemIdx < Quiz.currentElementIndex) {
-        const result = Quiz.results[elemIdx];
-        dot.classList.add(result && result.correct ? 'correct' : 'wrong');
-      } else if (elemIdx === Quiz.currentElementIndex && hintIdx <= Quiz.currentHintIndex) {
-        dot.classList.add('active');
+
+    for (let ei = 0; ei < 3; ei++) {
+      for (let qi = 0; qi < 3; qi++) {
+        const dot = document.createElement('div');
+        dot.className = 'quiz-dot';
+
+        if (ei < Quiz.currentElementIndex) {
+          // 過去の元素
+          const r = Quiz.results[ei];
+          const qKey = ['q1', 'q2', 'q3'][qi];
+          dot.classList.add(r[qKey] ? 'correct' : 'wrong');
+        } else if (ei === Quiz.currentElementIndex) {
+          // 現在の元素
+          const phaseIndex = { hint: 0, symbol: 1, number: 2 }[Quiz.currentPhase];
+          if (qi < phaseIndex) {
+            dot.classList.add('correct'); // 前の問題は正解してる
+          } else if (qi === phaseIndex) {
+            dot.classList.add('active');
+          }
+        }
+
+        dotContainer.appendChild(dot);
       }
-      dotContainer.appendChild(dot);
+
+      // 元素間のスペーサー
+      if (ei < 2) {
+        const spacer = document.createElement('div');
+        spacer.style.width = '4px';
+        dotContainer.appendChild(spacer);
+      }
     }
   },
 
-  // クイズを描画
+  // ===== フェーズ別レンダリング =====
   renderQuiz() {
     this.updateQuizProgress();
+
+    const phase = Quiz.currentPhase;
+    if (phase === 'hint') {
+      this.renderHintQuestion();
+    } else if (phase === 'symbol') {
+      this.renderSymbolQuestion();
+    } else if (phase === 'number') {
+      this.renderNumberQuestion();
+    }
+  },
+
+  // Q1: ヒント問題
+  renderHintQuestion() {
     const hints = Quiz.getCurrentHints();
     const hintArea = document.getElementById('hint-area');
     hintArea.innerHTML = '';
 
+    const hintLabel = document.createElement('div');
+    hintLabel.className = 'hint-label';
+    hintLabel.textContent = `Q1: この元素は何？（ヒント ${Quiz.currentHintIndex + 1} / 3）`;
+    hintArea.appendChild(hintLabel);
+
     hints.forEach((hint, i) => {
       const div = document.createElement('div');
-      div.innerHTML = `
-        <span class="hint-number-badge">${i + 1}</span>
-        <span class="hint-text">${hint}</span>
-      `;
+      div.innerHTML = `<span class="hint-number-badge">${i + 1}</span><span class="hint-text">${hint}</span>`;
       div.style.marginBottom = '10px';
       hintArea.appendChild(div);
     });
 
-    const hintLabel = document.createElement('div');
-    hintLabel.className = 'hint-label';
-    hintLabel.textContent = `ヒント ${Quiz.currentHintIndex + 1} / 3`;
-    hintArea.prepend(hintLabel);
-
-    // 選択肢を描画
+    // 4択（元素名）
     const answerArea = document.getElementById('answer-area');
     answerArea.innerHTML = '';
     const choicesDiv = document.createElement('div');
@@ -137,77 +153,155 @@ const GameUI = {
       const btn = document.createElement('button');
       btn.className = 'choice-btn';
       btn.textContent = element.name;
-      btn.addEventListener('click', () => this.handleAnswer(element.number, btn, choicesDiv));
+      btn.addEventListener('click', () => this.handleHintAnswer(element.number, btn, choicesDiv));
       choicesDiv.appendChild(btn);
     });
 
     answerArea.appendChild(choicesDiv);
   },
 
-  // 回答処理
-  handleAnswer(selectedNumber, selectedBtn, choicesDiv) {
-    // ボタンを無効化
-    choicesDiv.querySelectorAll('.choice-btn').forEach(b => {
-      b.disabled = true;
+  // Q2: 元素記号問題
+  renderSymbolQuestion() {
+    const el = Quiz.getCurrentElement();
+    const hintArea = document.getElementById('hint-area');
+    hintArea.innerHTML = `
+      <div class="hint-label">Q2: 元素記号を答えよう</div>
+      <div class="quiz-question-text">「<strong>${el.name}</strong>」の元素記号は？</div>
+    `;
+
+    const answerArea = document.getElementById('answer-area');
+    answerArea.innerHTML = '';
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'answer-choices';
+
+    Quiz.choices.forEach(symbol => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn choice-btn-symbol';
+      btn.textContent = symbol;
+      btn.addEventListener('click', () => this.handleSymbolAnswer(symbol, btn, choicesDiv));
+      choicesDiv.appendChild(btn);
     });
 
-    const result = Quiz.answer(selectedNumber);
+    answerArea.appendChild(choicesDiv);
+  },
+
+  // Q3: 原子番号問題
+  renderNumberQuestion() {
+    const el = Quiz.getCurrentElement();
+    const hintArea = document.getElementById('hint-area');
+    hintArea.innerHTML = `
+      <div class="hint-label">Q3: 原子番号を答えよう</div>
+      <div class="quiz-question-text">「<strong>${el.name}</strong>（${el.symbol}）」の原子番号は？</div>
+    `;
+
+    const answerArea = document.getElementById('answer-area');
+    answerArea.innerHTML = '';
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'answer-choices';
+
+    Quiz.choices.forEach(num => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn choice-btn-number';
+      btn.textContent = num;
+      btn.addEventListener('click', () => this.handleNumberAnswer(num, btn, choicesDiv));
+      choicesDiv.appendChild(btn);
+    });
+
+    answerArea.appendChild(choicesDiv);
+  },
+
+  // ===== 回答処理 =====
+
+  disableChoices(choicesDiv) {
+    choicesDiv.querySelectorAll('.choice-btn').forEach(b => { b.disabled = true; });
+  },
+
+  // Q1回答
+  handleHintAnswer(selectedNumber, selectedBtn, choicesDiv) {
+    this.disableChoices(choicesDiv);
+    const result = Quiz.answerHint(selectedNumber);
 
     if (result.correct) {
       selectedBtn.classList.add('correct');
-      Storage.addCard(result.element.number);
-
-      // 星数を表示（1問目=★3, 2問目=★2, 3問目=★1）
-      const stars = 3 - result.hintsUsed + 1;
-      const starsText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-
-      const feedback = document.createElement('div');
-      feedback.className = 'feedback feedback-correct';
-      feedback.innerHTML = `
-        正解！ <span style="color:var(--gold)">${starsText}</span>
-        <div class="feedback-element-name">${result.element.number}番 ${result.element.name} (${result.element.symbol})</div>
-      `;
-      document.getElementById('answer-area').appendChild(feedback);
-
-      setTimeout(() => {
-        this.showCardGet(result.element, stars);
-      }, 1200);
-
+      this.showFeedback('answer-area', true, `正解！ ${result.element.name}`, () => {
+        this.renderQuiz(); // → Q2へ
+      });
     } else if (result.nextHint) {
       selectedBtn.classList.add('wrong');
-
-      const feedback = document.createElement('div');
-      feedback.className = 'feedback feedback-wrong';
-      feedback.textContent = '残念...次のヒントを見てみよう！';
-      document.getElementById('answer-area').appendChild(feedback);
-
-      setTimeout(() => {
-        this.renderQuiz();
-      }, 1200);
-
-    } else {
-      selectedBtn.classList.add('wrong');
-      choicesDiv.querySelectorAll('.choice-btn').forEach(b => {
-        if (b.textContent === result.element.name) {
-          b.classList.add('correct');
-        }
+      this.showFeedback('answer-area', false, '残念...次のヒントを見てみよう！', () => {
+        this.renderQuiz(); // 次のヒントでQ1再表示
       });
-
-      const feedback = document.createElement('div');
-      feedback.className = 'feedback feedback-wrong';
-      feedback.innerHTML = `
-        正解は...
-        <div class="feedback-element-name">${result.element.number}番 ${result.element.name} (${result.element.symbol})</div>
-      `;
-      document.getElementById('answer-area').appendChild(feedback);
-
-      setTimeout(() => {
-        this.proceedToNext();
-      }, 2000);
+    } else {
+      // 3回外れ → 失敗
+      selectedBtn.classList.add('wrong');
+      this.showCorrectButton(choicesDiv, result.element.name);
+      this.showFeedback('answer-area', false,
+        `正解は... ${result.element.number}番 ${result.element.name} (${result.element.symbol})`,
+        () => this.proceedToNext()
+      , 2000);
     }
   },
 
-  // 次へ進む
+  // Q2回答
+  handleSymbolAnswer(selectedSymbol, selectedBtn, choicesDiv) {
+    this.disableChoices(choicesDiv);
+    const result = Quiz.answerSymbol(selectedSymbol);
+
+    if (result.correct) {
+      selectedBtn.classList.add('correct');
+      this.showFeedback('answer-area', true, `正解！ ${result.element.symbol}`, () => {
+        this.renderQuiz(); // → Q3へ
+      });
+    } else {
+      selectedBtn.classList.add('wrong');
+      this.showCorrectButton(choicesDiv, result.correctAnswer);
+      this.showFeedback('answer-area', false,
+        `残念... 正解は「${result.correctAnswer}」`,
+        () => this.proceedToNext()
+      , 2000);
+    }
+  },
+
+  // Q3回答
+  handleNumberAnswer(selectedNumber, selectedBtn, choicesDiv) {
+    this.disableChoices(choicesDiv);
+    const result = Quiz.answerNumber(selectedNumber);
+
+    if (result.correct) {
+      selectedBtn.classList.add('correct');
+      // 全問正解 → カード獲得！
+      Storage.addCard(result.element.number);
+      this.showFeedback('answer-area', true, '正解！ 3問全問正解！', () => {
+        this.showCardGet(result.element);
+      });
+    } else {
+      selectedBtn.classList.add('wrong');
+      this.showCorrectButton(choicesDiv, String(result.correctAnswer));
+      this.showFeedback('answer-area', false,
+        `残念... 正解は「${result.correctAnswer}」`,
+        () => this.proceedToNext()
+      , 2000);
+    }
+  },
+
+  // 正解ボタンをハイライト
+  showCorrectButton(choicesDiv, correctText) {
+    choicesDiv.querySelectorAll('.choice-btn').forEach(b => {
+      if (b.textContent === correctText) b.classList.add('correct');
+    });
+  },
+
+  // フィードバック表示
+  showFeedback(containerId, isCorrect, message, callback, delay) {
+    const container = document.getElementById(containerId);
+    const feedback = document.createElement('div');
+    feedback.className = `feedback ${isCorrect ? 'feedback-correct' : 'feedback-wrong'}`;
+    feedback.innerHTML = message;
+    container.appendChild(feedback);
+    setTimeout(callback, delay || 1200);
+  },
+
+  // 次の元素 or ステージ結果へ
   proceedToNext() {
     const hasMore = Quiz.nextElement();
     if (hasMore) {
@@ -218,20 +312,15 @@ const GameUI = {
   },
 
   // ===== カード獲得演出 =====
-  showCardGet(element, stars) {
+  showCardGet(element) {
     this.showScreen('screen-card-get');
     const display = document.getElementById('card-get-display');
     display.innerHTML = this.renderElementCard(element, true);
 
-    // 星表示
-    const starsText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
     const label = document.querySelector('.card-get-label');
-    if (label) {
-      label.innerHTML = `元素カード獲得！ <span style="font-size:1.5rem">${starsText}</span>`;
-    }
+    if (label) label.textContent = `元素カード獲得！ ★★★`;
 
-    const nextBtn = document.getElementById('card-get-next-btn');
-    nextBtn.onclick = () => {
+    document.getElementById('card-get-next-btn').onclick = () => {
       this.proceedToNext();
     };
   },
@@ -239,29 +328,18 @@ const GameUI = {
   // ===== ステージ結果画面 =====
   showResult() {
     const result = Quiz.getStageResult();
-
-    // 星計算: 正解した元素のhintsUsedから星を計算
-    // 1問目正解=3星, 2問目=2星, 3問目=1星, 不正解=0星
-    let totalStars = 0;
-    result.results.forEach(r => {
-      if (r.correct) {
-        totalStars += (4 - r.hintsUsed); // hintsUsed=1→3星, 2→2星, 3→1星
-      }
-    });
-
-    Storage.saveStageClear(result.stageId, totalStars);
-    const correctElementCount = result.results.filter(r => r.correct).length;
+    Storage.saveStageClear(result.stageId, result.totalStars);
 
     this.showScreen('screen-result');
 
     const title = document.getElementById('result-title');
-    if (totalStars === 9) {
+    if (result.isPerfect) {
       title.textContent = 'パーフェクト！';
       title.style.color = 'var(--gold)';
-    } else if (correctElementCount === 3) {
+    } else if (result.cardCount >= 2) {
       title.textContent = 'ステージクリア！';
       title.style.color = 'var(--success)';
-    } else if (correctElementCount >= 1) {
+    } else if (result.cardCount >= 1) {
       title.textContent = 'ステージクリア';
       title.style.color = 'var(--text)';
     } else {
@@ -269,31 +347,29 @@ const GameUI = {
       title.style.color = 'var(--danger)';
     }
 
-    // 各元素の星を表示
-    const elementStars = result.results.map(r => {
-      if (r.correct) return 4 - r.hintsUsed;
-      return 0;
-    });
-
     document.getElementById('result-score').innerHTML = `
-      <div style="font-size:1.6rem;color:var(--gold);margin-bottom:8px">${this.renderStarsText(totalStars)}</div>
-      ${correctElementCount} / 3 元素を獲得 (★ ${totalStars} / 9)
+      <div style="font-size:1.6rem;color:var(--gold);margin-bottom:8px">${this.renderStarsText(result.totalStars)}</div>
+      ${result.cardCount} / 3 カード獲得 (★ ${result.totalStars} / 9)
     `;
 
-    // 獲得カード表示
+    // 各元素カード表示
     const cardsDiv = document.getElementById('result-cards');
     cardsDiv.innerHTML = '';
-    result.results.forEach((r, i) => {
+    result.results.forEach(r => {
       const el = ALL_ELEMENTS.find(e => e.number === r.elementNumber);
+      const stars = (r.q1 ? 1 : 0) + (r.q2 ? 1 : 0) + (r.q3 ? 1 : 0);
       const wrapper = document.createElement('div');
       wrapper.style.textAlign = 'center';
       wrapper.innerHTML = `
-        ${this.renderElementCard(el, r.correct, true)}
-        <div style="margin-top:4px;color:var(--gold);font-size:0.9rem">
-          ${'★'.repeat(elementStars[i])}${'☆'.repeat(3 - elementStars[i])}
+        ${this.renderElementCard(el, r.allCorrect)}
+        <div style="margin-top:6px;font-size:0.85rem">
+          <span style="color:${r.q1 ? 'var(--success)' : 'var(--danger)'}">Q1${r.q1 ? '○' : '×'}</span>
+          <span style="color:${r.q2 ? 'var(--success)' : 'var(--danger)'}">Q2${r.q2 ? '○' : '×'}</span>
+          <span style="color:${r.q3 ? 'var(--success)' : 'var(--danger)'}">Q3${r.q3 ? '○' : '×'}</span>
         </div>
+        <div style="margin-top:2px;color:var(--gold);font-size:0.85rem">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
       `;
-      if (!r.correct) {
+      if (!r.allCorrect) {
         wrapper.querySelector('.element-card').style.opacity = '0.3';
       }
       cardsDiv.appendChild(wrapper);
@@ -303,16 +379,13 @@ const GameUI = {
     const resultBtns = document.getElementById('result-buttons');
     resultBtns.innerHTML = `
       <button class="btn btn-secondary btn-large" onclick="GameUI.showStageSelect()">ステージ選択へ</button>
-      <button class="btn btn-accent btn-large" onclick="GameUI.startStage(${result.stageId})"
-              style="background:var(--warning);color:#000">もう一度</button>
+      <button class="btn btn-large" onclick="GameUI.startStage(${result.stageId})" style="background:var(--warning);color:#000">もう一度</button>
       ${result.stageId < 39 ? `<button class="btn btn-primary btn-large" onclick="GameUI.startStage(${result.stageId + 1})">次のステージへ</button>` : ''}
     `;
 
     // 全問正解チェック
     if (Storage.isAllPerfect() && !Storage.load().bonusObtained) {
-      setTimeout(() => {
-        this.showBonus();
-      }, 1500);
+      setTimeout(() => this.showBonus(), 1500);
     }
   },
 
@@ -324,15 +397,12 @@ const GameUI = {
 
   renderZukan() {
     const data = Storage.load();
-    const cardCount = Storage.getCardCount();
-    document.getElementById('zukan-count').textContent = `${cardCount} / 118 枚`;
+    document.getElementById('zukan-count').textContent = `${Storage.getCardCount()} / 118 枚`;
 
-    // トグルボタンのアクティブ状態
     document.querySelectorAll('.zukan-toggle .btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById(this.zukanView === 'grid' ? 'btn-grid-view' : 'btn-periodic-view');
     if (activeBtn) activeBtn.classList.add('active');
 
-    // ビュー切り替え
     const gridContainer = document.getElementById('zukan-grid');
     const periodicContainer = document.getElementById('zukan-periodic');
 
@@ -349,21 +419,14 @@ const GameUI = {
 
   renderZukanGrid(data, grid) {
     grid.innerHTML = '';
-    const allForZukan = [...ALL_ELEMENTS, BONUS_ELEMENT];
-
-    allForZukan.forEach(element => {
+    [...ALL_ELEMENTS, BONUS_ELEMENT].forEach(element => {
       const obtained = element.number === 118
         ? data.bonusObtained
         : data.obtainedCards.includes(element.number);
-
       const wrapper = document.createElement('div');
       wrapper.innerHTML = this.renderElementCard(element, obtained);
       const card = wrapper.firstElementChild;
-
-      if (obtained) {
-        card.addEventListener('click', () => this.showCardDetail(element));
-      }
-
+      if (obtained) card.addEventListener('click', () => this.showCardDetail(element));
       grid.appendChild(card);
     });
   },
@@ -371,15 +434,11 @@ const GameUI = {
   // ===== 周期表ビュー =====
   renderPeriodicTable(data, container) {
     container.innerHTML = '';
-
-    // 周期表のレイアウト定義 [row, col] (1-indexed)
     const layout = this.getPeriodicTableLayout();
 
-    // メインテーブル (7行 × 18列)
     const mainTable = document.createElement('div');
     mainTable.className = 'periodic-table';
 
-    // 空セルで埋める (7行 × 18列 = 126セル)
     const cells = {};
     for (let row = 1; row <= 7; row++) {
       for (let col = 1; col <= 18; col++) {
@@ -387,15 +446,11 @@ const GameUI = {
       }
     }
 
-    // 元素を配置
     ALL_ELEMENTS.forEach(el => {
       const pos = layout[el.number];
-      if (pos && pos.row <= 7) {
-        cells[`${pos.row}-${pos.col}`] = el;
-      }
+      if (pos && pos.row <= 7) cells[`${pos.row}-${pos.col}`] = el;
     });
 
-    // セルを描画
     for (let row = 1; row <= 7; row++) {
       for (let col = 1; col <= 18; col++) {
         const el = cells[`${row}-${col}`];
@@ -408,44 +463,32 @@ const GameUI = {
         }
       }
     }
-
     container.appendChild(mainTable);
 
-    // ランタノイド・アクチノイド行
+    // ランタノイド・アクチノイド
     const lanActContainer = document.createElement('div');
     lanActContainer.className = 'periodic-table-lan-act';
 
-    const lanLabel = document.createElement('div');
-    lanLabel.className = 'pt-section-label';
-    lanLabel.textContent = 'ランタノイド';
-    lanActContainer.appendChild(lanLabel);
+    [
+      { label: 'ランタノイド', start: 57, end: 71 },
+      { label: 'アクチノイド', start: 89, end: 103 }
+    ].forEach(({ label, start, end }) => {
+      const lbl = document.createElement('div');
+      lbl.className = 'pt-section-label';
+      lbl.textContent = label;
+      lanActContainer.appendChild(lbl);
 
-    const lanRow = document.createElement('div');
-    lanRow.className = 'pt-extra-row';
-    for (let num = 57; num <= 71; num++) {
-      const el = ALL_ELEMENTS.find(e => e.number === num);
-      if (el) {
-        const obtained = data.obtainedCards.includes(el.number);
-        lanRow.appendChild(this.createPTCell(el, obtained));
+      const row = document.createElement('div');
+      row.className = 'pt-extra-row';
+      for (let num = start; num <= end; num++) {
+        const el = ALL_ELEMENTS.find(e => e.number === num);
+        if (el) {
+          const obtained = data.obtainedCards.includes(el.number);
+          row.appendChild(this.createPTCell(el, obtained));
+        }
       }
-    }
-    lanActContainer.appendChild(lanRow);
-
-    const actLabel = document.createElement('div');
-    actLabel.className = 'pt-section-label';
-    actLabel.textContent = 'アクチノイド';
-    lanActContainer.appendChild(actLabel);
-
-    const actRow = document.createElement('div');
-    actRow.className = 'pt-extra-row';
-    for (let num = 89; num <= 103; num++) {
-      const el = ALL_ELEMENTS.find(e => e.number === num);
-      if (el) {
-        const obtained = data.obtainedCards.includes(el.number);
-        actRow.appendChild(this.createPTCell(el, obtained));
-      }
-    }
-    lanActContainer.appendChild(actRow);
+      lanActContainer.appendChild(row);
+    });
 
     container.appendChild(lanActContainer);
   },
@@ -453,14 +496,8 @@ const GameUI = {
   createPTCell(element, obtained) {
     const cell = document.createElement('div');
     cell.className = 'pt-cell' + (obtained ? ' obtained' : ' locked');
-
-    const bgColor = element.color || '#6c63ff';
     if (obtained) {
-      cell.style.borderColor = bgColor;
-      cell.style.boxShadow = `0 0 6px ${bgColor}33`;
-    }
-
-    if (obtained) {
+      cell.style.borderColor = element.color || '#6c63ff';
       cell.innerHTML = `
         <span class="pt-cell-number">${element.number}</span>
         <span class="pt-cell-symbol">${element.symbol}</span>
@@ -474,34 +511,21 @@ const GameUI = {
         <span class="pt-cell-name"></span>
       `;
     }
-
     return cell;
   },
 
-  // 周期表レイアウト（原子番号→行・列）
   getPeriodicTableLayout() {
     const layout = {};
-    // 第1周期
     layout[1] = {row:1,col:1}; layout[2] = {row:1,col:18};
-    // 第2周期
     layout[3] = {row:2,col:1}; layout[4] = {row:2,col:2};
-    layout[5] = {row:2,col:13}; layout[6] = {row:2,col:14}; layout[7] = {row:2,col:15};
-    layout[8] = {row:2,col:16}; layout[9] = {row:2,col:17}; layout[10] = {row:2,col:18};
-    // 第3周期
+    for (let i = 5; i <= 10; i++) layout[i] = {row:2, col:i+8};
     layout[11] = {row:3,col:1}; layout[12] = {row:3,col:2};
-    layout[13] = {row:3,col:13}; layout[14] = {row:3,col:14}; layout[15] = {row:3,col:15};
-    layout[16] = {row:3,col:16}; layout[17] = {row:3,col:17}; layout[18] = {row:3,col:18};
-    // 第4周期
+    for (let i = 13; i <= 18; i++) layout[i] = {row:3, col:i};
     for (let i = 19; i <= 36; i++) layout[i] = {row:4, col:i-18};
-    // 第5周期
     for (let i = 37; i <= 54; i++) layout[i] = {row:5, col:i-36};
-    // 第6周期 (ランタノイド57-71は別行)
     layout[55] = {row:6,col:1}; layout[56] = {row:6,col:2};
-    // 57-71はランタノイド行（メインテーブルには配置しない）
     for (let i = 72; i <= 86; i++) layout[i] = {row:6, col:i-69};
-    // 第7周期 (アクチノイド89-103は別行)
     layout[87] = {row:7,col:1}; layout[88] = {row:7,col:2};
-    // 89-103はアクチノイド行
     for (let i = 104; i <= 118; i++) layout[i] = {row:7, col:i-101};
     return layout;
   },
@@ -511,14 +535,12 @@ const GameUI = {
     this.renderZukan();
   },
 
-  // カード詳細表示
   showCardDetail(element) {
     const overlay = document.createElement('div');
     overlay.className = 'card-detail-overlay';
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) overlay.remove();
     });
-
     overlay.innerHTML = `
       <div class="card-detail">
         ${this.renderElementCard(element, true)}
@@ -531,7 +553,6 @@ const GameUI = {
         <button class="btn btn-secondary" style="margin-top:16px" onclick="this.closest('.card-detail-overlay').remove()">閉じる</button>
       </div>
     `;
-
     document.body.appendChild(overlay);
   },
 
@@ -539,11 +560,7 @@ const GameUI = {
   showBonus() {
     Storage.setBonus();
     this.showScreen('screen-bonus');
-
-    const display = document.getElementById('bonus-card-display');
-    display.innerHTML = this.renderElementCard(BONUS_ELEMENT, true);
-
-    // パーティクルエフェクト
+    document.getElementById('bonus-card-display').innerHTML = this.renderElementCard(BONUS_ELEMENT, true);
     const particles = document.getElementById('bonus-particles');
     particles.innerHTML = '';
     const colors = ['#ffd700', '#ff6f00', '#e040fb', '#6c63ff', '#00bcd4', '#4caf50'];
@@ -558,24 +575,12 @@ const GameUI = {
     }
   },
 
-  // ===== 共通: 元素カードHTML生成 =====
+  // ===== 元素カードHTML =====
   renderElementCard(element, obtained = false) {
-    const classes = ['element-card'];
-    if (obtained) {
-      classes.push('obtained');
-    } else {
-      classes.push('locked');
-    }
-
-    const imagePath = `cards/${element.number}.png`;
-
+    const cls = obtained ? 'element-card obtained' : 'element-card locked';
     return `
-      <div class="${classes.join(' ')}"
-           style="--el-color: ${element.color || '#6c63ff'}"
-           data-number="${element.number}">
-        <img class="element-card-image" src="${imagePath}"
-             onerror="this.style.display='none'"
-             alt="${element.name}">
+      <div class="${cls}" style="--el-color: ${element.color || '#6c63ff'}" data-number="${element.number}">
+        <img class="element-card-image" src="cards/${element.number}.png" onerror="this.style.display='none'" alt="${element.name}">
         <div class="element-card-number">${element.number}</div>
         <div class="element-card-symbol" style="color: ${element.color || '#6c63ff'}">${element.symbol}</div>
         <div class="element-card-name">${element.name}</div>
@@ -585,31 +590,22 @@ const GameUI = {
     `;
   },
 
-  // ===== 確認ダイアログ =====
+  // ===== ダイアログ =====
   confirmQuit() {
-    this.showDialog('クイズを中断しますか？\n進行状況は失われます。', () => {
-      this.showStageSelect();
-    });
+    this.showDialog('クイズを中断しますか？\n進行状況は失われます。', () => this.showStageSelect());
   },
 
   showDialog(message, onOk) {
     const overlay = document.getElementById('dialog-overlay');
     overlay.style.display = 'flex';
     document.getElementById('dialog-message').textContent = message;
-
-    document.getElementById('dialog-ok').onclick = () => {
-      overlay.style.display = 'none';
-      if (onOk) onOk();
-    };
-    document.getElementById('dialog-cancel').onclick = () => {
-      overlay.style.display = 'none';
-    };
+    document.getElementById('dialog-ok').onclick = () => { overlay.style.display = 'none'; if (onOk) onOk(); };
+    document.getElementById('dialog-cancel').onclick = () => { overlay.style.display = 'none'; };
   }
 };
 
 // 起動
 window.addEventListener('DOMContentLoaded', () => {
-  // PWA Service Worker 登録
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
