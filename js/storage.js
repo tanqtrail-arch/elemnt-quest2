@@ -79,8 +79,14 @@ const Storage = {
     return data.stages[stageId] && data.stages[stageId].cleared;
   },
 
-  // ステージの正答数
+  // ステージの正答数（後方互換）
   getStageCorrectCount(stageId) {
+    const data = this.load();
+    return (data.stages[stageId] && data.stages[stageId].correctCount) || 0;
+  },
+
+  // ステージの星数を取得
+  getStageStars(stageId) {
     const data = this.load();
     return (data.stages[stageId] && data.stages[stageId].correctCount) || 0;
   },

@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>エレメントクエスト - 元素を当てろ！</title>
+  <meta name="theme-color" content="#6c63ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -63,10 +67,7 @@
       <h2 id="result-title"></h2>
       <div class="result-score" id="result-score"></div>
       <div class="result-cards" id="result-cards"></div>
-      <div class="result-buttons">
-        <button class="btn btn-secondary btn-large" onclick="GameUI.showStageSelect()">ステージ選択へ</button>
-        <button class="btn btn-primary btn-large" id="result-next-btn" style="display:none">次のステージへ</button>
-      </div>
+      <div class="result-buttons" id="result-buttons"></div>
     </div>
   </div>
 
@@ -77,7 +78,12 @@
       <h2>元素図鑑</h2>
       <div class="zukan-count" id="zukan-count"></div>
     </div>
+    <div class="zukan-toggle">
+      <button class="btn btn-secondary active" id="btn-grid-view" onclick="GameUI.switchZukanView('grid')">一覧</button>
+      <button class="btn btn-secondary" id="btn-periodic-view" onclick="GameUI.switchZukanView('periodic')">周期表</button>
+    </div>
     <div class="zukan-grid" id="zukan-grid"></div>
+    <div class="zukan-periodic-wrapper" id="zukan-periodic" style="display:none"></div>
   </div>
 
   <!-- 118番ボーナス演出 -->

@@ -76,7 +76,7 @@ const Quiz = {
         correct: true,
         hintsUsed: this.currentHintIndex + 1
       });
-      return { correct: true, element: correct };
+      return { correct: true, element: correct, hintsUsed: this.currentHintIndex + 1 };
     } else {
       // 不正解
       if (this.currentHintIndex < 2) {

@@ -873,3 +873,286 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 }
+
+/* ===== 図鑑 ビュー切り替えトグル ===== */
+.zukan-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.zukan-toggle .btn {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.zukan-toggle .btn:hover {
+  color: var(--text);
+}
+
+.zukan-toggle .btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* ===== 周期表ビュー ===== */
+.periodic-table {
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  gap: 3px;
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 20px;
+  min-width: 0;
+}
+
+/* 各セル */
+.pt-cell {
+  position: relative;
+  width: 100%;
+  min-width: 42px;
+  aspect-ratio: 1 / 1.15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.pt-cell:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  z-index: 1;
+}
+
+/* 取得済みセル */
+.pt-cell.obtained {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.1);
+}
+
+/* 未取得セル */
+.pt-cell.locked {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pt-cell.locked:hover {
+  transform: none;
+  border-color: var(--card-border);
+}
+
+.pt-cell.locked .pt-cell-symbol,
+.pt-cell.locked .pt-cell-name {
+  visibility: hidden;
+}
+
+.pt-cell.locked::after {
+  content: "?";
+  position: absolute;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+/* セル内部要素 */
+.pt-cell-number {
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  line-height: 1;
+}
+
+.pt-cell-symbol {
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+}
+
+.pt-cell-name {
+  font-size: 0.45rem;
+  color: var(--text-dim);
+  line-height: 1;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+/* 空セル（スペーサー） */
+.pt-spacer {
+  background: transparent;
+  border: none;
+  pointer-events: none;
+}
+
+/* ランタノイド・アクチノイド ラベル */
+.pt-lanthanoid-label,
+.pt-actinoid-label {
+  grid-column: 1 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* メインテーブルとランタノイド/アクチノイドの間の区切り */
+.pt-separator {
+  grid-column: 1 / -1;
+  height: 10px;
+  background: transparent;
+  border: none;
+  pointer-events: none;
+}
+
+/* ===== 元素カテゴリ別カラー（周期表セル用） ===== */
+.pt-cell.cat-nonmetal {
+  background: #1a3a2a;
+  border-color: #2a6040;
+}
+
+.pt-cell.cat-noble-gas {
+  background: #1a2a3a;
+  border-color: #2a4a6a;
+}
+
+.pt-cell.cat-alkali-metal {
+  background: #3a1a1a;
+  border-color: #6a2a2a;
+}
+
+.pt-cell.cat-alkaline-earth {
+  background: #3a2a1a;
+  border-color: #6a4a2a;
+}
+
+.pt-cell.cat-metalloid {
+  background: #2a2a1a;
+  border-color: #4a4a2a;
+}
+
+.pt-cell.cat-halogen {
+  background: #1a2a2a;
+  border-color: #2a5050;
+}
+
+.pt-cell.cat-transition-metal {
+  background: #1e1e30;
+  border-color: #3a3a5a;
+}
+
+.pt-cell.cat-post-transition {
+  background: #252535;
+  border-color: #454565;
+}
+
+.pt-cell.cat-lanthanoid {
+  background: #2a1a30;
+  border-color: #4a3060;
+}
+
+.pt-cell.cat-actinoid {
+  background: #301a28;
+  border-color: #603050;
+}
+
+/* ===== 周期表ラッパー ===== */
+.zukan-periodic-wrapper {
+  overflow-x: auto;
+  flex: 1;
+  padding-bottom: 20px;
+}
+
+/* ===== ランタノイド・アクチノイド 別行 ===== */
+.periodic-table-lan-act {
+  margin-top: 16px;
+}
+
+.pt-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin: 8px 0 4px;
+}
+
+.pt-extra-row {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  gap: 3px;
+  min-width: 640px;
+}
+
+/* ===== 周期表レスポンシブ ===== */
+@media (max-width: 768px) {
+  .periodic-table {
+    min-width: 760px;
+    gap: 2px;
+  }
+
+  .pt-cell {
+    min-width: 38px;
+  }
+
+  .pt-cell-symbol {
+    font-size: 0.85rem;
+  }
+
+  .pt-cell-name {
+    font-size: 0.4rem;
+  }
+
+  .pt-cell-number {
+    font-size: 0.45rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .periodic-table {
+    gap: 4px;
+  }
+
+  .pt-cell {
+    min-width: 48px;
+  }
+
+  .pt-cell-symbol {
+    font-size: 1.05rem;
+  }
+
+  .pt-cell-name {
+    font-size: 0.55rem;
+  }
+
+  .pt-cell-number {
+    font-size: 0.55rem;
+  }
+}
