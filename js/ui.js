@@ -350,21 +350,22 @@ const GameUI = {
       display.appendChild(item);
     });
 
-    // ボタン
+    // ボタン（カード登場後に表示）
     const btnsDiv = document.getElementById('card-get-buttons');
     btnsDiv.innerHTML = '';
+    btnsDiv.style.opacity = '0';
+    btnsDiv.style.transform = 'translateY(12px)';
+    btnsDiv.style.transition = 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
 
     const zukanBtn = document.createElement('button');
-    zukanBtn.className = 'btn btn-secondary btn-large';
+    zukanBtn.className = 'btn btn-glass btn-large';
     zukanBtn.textContent = '図鑑を見る';
     zukanBtn.addEventListener('click', () => this.showZukan());
     btnsDiv.appendChild(zukanBtn);
 
     const resultBtn = document.createElement('button');
-    resultBtn.className = 'btn btn-large';
+    resultBtn.className = 'btn btn-glass btn-large';
     resultBtn.textContent = 'リザルトを見る';
-    resultBtn.style.background = 'var(--warning)';
-    resultBtn.style.color = '#000';
     resultBtn.addEventListener('click', () => this.showResult());
     btnsDiv.appendChild(resultBtn);
 
@@ -375,6 +376,12 @@ const GameUI = {
       nextBtn.addEventListener('click', () => this.startStage(result.stageId + 1));
       btnsDiv.appendChild(nextBtn);
     }
+
+    // カード登場後にボタンをフェードイン
+    setTimeout(() => {
+      btnsDiv.style.opacity = '1';
+      btnsDiv.style.transform = 'translateY(0)';
+    }, 1200);
 
     // 全問正解チェック
     if (Storage.isAllPerfect() && !Storage.load().bonusObtained) {
@@ -436,9 +443,9 @@ const GameUI = {
     // ボタン
     const resultBtns = document.getElementById('result-buttons');
     resultBtns.innerHTML = `
-      <button class="btn btn-secondary btn-large" onclick="GameUI.showStageSelect()">ステージ選択へ</button>
-      <button class="btn btn-secondary btn-large" onclick="GameUI.showZukan()">図鑑を見る</button>
-      <button class="btn btn-large" onclick="GameUI.startStage(${result.stageId})" style="background:var(--warning);color:#000">もう一度</button>
+      <button class="btn btn-glass btn-large" onclick="GameUI.showStageSelect()">ステージ選択へ</button>
+      <button class="btn btn-glass btn-large" onclick="GameUI.showZukan()">図鑑を見る</button>
+      <button class="btn btn-secondary btn-large" onclick="GameUI.startStage(${result.stageId})">もう一度</button>
       ${result.stageId < 39 ? `<button class="btn btn-primary btn-large" onclick="GameUI.startStage(${result.stageId + 1})">次のステージへ</button>` : ''}
     `;
 

@@ -8,20 +8,32 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
   <!-- タイトル画面 -->
   <div id="screen-title" class="screen active">
     <div class="title-container">
-      <h1 class="game-title">
-        <span class="title-icon">⚛</span>
-        <span>エレメントクエスト</span>
-      </h1>
-      <p class="title-subtitle">元素を当てろ！全39ステージ</p>
+      <div class="title-logo-area">
+        <div class="title-atom" aria-hidden="true">
+          <div class="atom-nucleus"></div>
+          <div class="atom-orbit atom-orbit-1"><div class="atom-electron"></div></div>
+          <div class="atom-orbit atom-orbit-2"><div class="atom-electron"></div></div>
+          <div class="atom-orbit atom-orbit-3"><div class="atom-electron"></div></div>
+        </div>
+        <h1 class="game-title">ELEMENT QUEST</h1>
+        <p class="game-title-jp">エレメントクエスト</p>
+      </div>
+      <p class="title-subtitle">元素を当てろ！ 全39ステージ × 117元素</p>
       <div class="title-buttons">
-        <button class="btn btn-primary btn-large" onclick="GameUI.showStageSelect()">ゲームスタート</button>
-        <button class="btn btn-secondary btn-large" onclick="GameUI.showZukan()">図鑑</button>
+        <button class="btn btn-primary btn-large btn-glow" onclick="GameUI.showStageSelect()">ゲームスタート</button>
+        <button class="btn btn-glass btn-large" onclick="GameUI.showZukan()">図鑑</button>
       </div>
       <div id="title-progress" class="title-progress"></div>
     </div>

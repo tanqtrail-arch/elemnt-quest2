@@ -1,4 +1,4 @@
-const CACHE_NAME = 'element-quest-v1';
+const CACHE_NAME = 'element-quest-v2';
 const ASSETS_TO_CACHE = [
   '/index.html',
   '/css/style.css',
