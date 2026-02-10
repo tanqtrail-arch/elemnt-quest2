@@ -1,10 +1,30 @@
 // ===== UI管理 =====
+const CHOICE_LABELS = ['A', 'B', 'C', 'D'];
+
 const GameUI = {
   zukanView: 'grid',
 
   showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+  },
+
+  // ===== 浮遊パーティクル =====
+  initParticles() {
+    const container = document.getElementById('floating-particles');
+    if (!container || container.children.length > 0) return;
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'fp';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top = Math.random() * 100 + '%';
+      p.style.width = (2 + Math.random() * 4) + 'px';
+      p.style.height = p.style.width;
+      p.style.animationDuration = (8 + Math.random() * 12) + 's';
+      p.style.animationDelay = -(Math.random() * 20) + 's';
+      p.style.opacity = 0.15 + Math.random() * 0.35;
+      container.appendChild(p);
+    }
   },
 
   // ===== タイトル画面 =====
@@ -15,43 +35,77 @@ const GameUI = {
     progress.textContent = cardCount > 0 ? `図鑑: ${cardCount} / 118 枚` : '';
   },
 
-  // ===== ステージ選択画面 =====
+  // ===== ステージ選択画面（冒険マップ） =====
   showStageSelect() {
     this.showScreen('screen-stage-select');
-    const grid = document.getElementById('stage-grid');
-    grid.innerHTML = '';
 
-    STAGES.forEach(stage => {
+    // 図鑑カウント更新
+    const navCount = document.getElementById('nav-zukan-count');
+    if (navCount) navCount.textContent = `${Storage.getCardCount()}/118`;
+
+    const list = document.getElementById('stage-grid');
+    list.innerHTML = '';
+
+    STAGES.forEach((stage, idx) => {
       const unlocked = Storage.isStageUnlocked(stage.id);
       const cleared = Storage.isStageClear(stage.id);
       const stars = Storage.getStageStars(stage.id);
       const isPerfect = stars === 9;
+      const theme = STAGE_THEMES[idx] || { emoji: '?', bg: '#444', accent: '#666' };
 
-      const card = document.createElement('div');
-      card.className = 'stage-card';
-      if (!unlocked) card.classList.add('locked');
-      if (cleared) card.classList.add('cleared');
-      if (isPerfect) card.classList.add('perfect');
+      const item = document.createElement('div');
+      item.className = 'stage-item';
+      if (!unlocked) item.classList.add('locked');
+      if (cleared) item.classList.add('cleared');
+      if (isPerfect) item.classList.add('perfect');
 
+      // ステータスインジケータ
+      let statusIcon = '';
       if (!unlocked) {
-        card.innerHTML = `
-          <div class="stage-lock-icon">🔒</div>
-          <div class="stage-number">STAGE ${stage.id}</div>
-          <div class="stage-name">${stage.name}</div>
-          <div class="stage-status">未開放</div>
-        `;
+        statusIcon = '<div class="stage-status-indicator locked-indicator"></div>';
+      } else if (isPerfect) {
+        statusIcon = '<div class="stage-status-indicator perfect-indicator">✓</div>';
+      } else if (cleared) {
+        statusIcon = '<div class="stage-status-indicator cleared-indicator">✓</div>';
       } else {
-        const starsDisplay = cleared ? this.renderStarsText(stars) : '';
-        card.innerHTML = `
-          <div class="stage-number">STAGE ${stage.id}</div>
-          <div class="stage-name">${stage.name}</div>
-          <div class="stage-status">${cleared ? `★ ${stars} / 9` : 'チャレンジ！'}</div>
-          ${starsDisplay ? `<div class="stage-stars">${starsDisplay}</div>` : ''}
-        `;
-        card.addEventListener('click', () => this.startStage(stage.id));
+        statusIcon = '<div class="stage-status-indicator available-indicator"></div>';
       }
 
-      grid.appendChild(card);
+      // CLEARバッジ
+      const clearBadge = cleared
+        ? (isPerfect ? '<span class="clear-badge perfect-badge">PERFECT</span>' : '<span class="clear-badge">CLEAR</span>')
+        : '';
+
+      // 星とスコア
+      let metaHtml = '';
+      if (cleared) {
+        const starStr = '★'.repeat(Math.min(stars, 9));
+        metaHtml = `<div class="stage-meta"><span class="stage-stars-text">${starStr}</span></div>`;
+      } else if (unlocked) {
+        metaHtml = '<div class="stage-meta"><span class="stage-challenge">チャレンジ！</span></div>';
+      }
+
+      item.innerHTML = `
+        ${statusIcon}
+        <div class="stage-icon" style="background:${theme.bg}">
+          <span class="stage-icon-emoji">${theme.emoji}</span>
+        </div>
+        <div class="stage-info">
+          <div class="stage-number-row">
+            <span class="stage-number">STAGE ${stage.id}</span>
+            ${clearBadge}
+          </div>
+          <div class="stage-name-text">${stage.name}</div>
+          ${metaHtml}
+        </div>
+        <div class="stage-chevron">›</div>
+      `;
+
+      if (unlocked) {
+        item.addEventListener('click', () => this.startStage(stage.id));
+      }
+
+      list.appendChild(item);
     });
   },
 
@@ -74,7 +128,7 @@ const GameUI = {
   // ===== 進捗ドット =====
   updateQuizProgress() {
     const current = Quiz.currentElementIndex + 1;
-    document.getElementById('quiz-progress').textContent = `${current} / 3 元素`;
+    document.getElementById('quiz-progress').textContent = `${current} / 3`;
 
     const dotContainer = document.getElementById('quiz-element-progress');
     dotContainer.innerHTML = '';
@@ -85,15 +139,13 @@ const GameUI = {
         dot.className = 'quiz-dot';
 
         if (ei < Quiz.currentElementIndex) {
-          // 過去の元素
           const r = Quiz.results[ei];
           const qKey = ['q1', 'q2', 'q3'][qi];
           dot.classList.add(r[qKey] ? 'correct' : 'wrong');
         } else if (ei === Quiz.currentElementIndex) {
-          // 現在の元素
           const phaseIndex = { hint: 0, symbol: 1, number: 2 }[Quiz.currentPhase];
           if (qi < phaseIndex) {
-            dot.classList.add('correct'); // 前の問題は正解してる
+            dot.classList.add('correct');
           } else if (qi === phaseIndex) {
             dot.classList.add('active');
           }
@@ -102,10 +154,9 @@ const GameUI = {
         dotContainer.appendChild(dot);
       }
 
-      // 元素間のスペーサー
       if (ei < 2) {
         const spacer = document.createElement('div');
-        spacer.style.width = '4px';
+        spacer.style.width = '6px';
         dotContainer.appendChild(spacer);
       }
     }
@@ -125,6 +176,25 @@ const GameUI = {
     }
   },
 
+  // ===== 縦型選択肢生成 =====
+  createVerticalChoices(choices, extraClass, formatFn, clickFn) {
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'answer-choices-vertical';
+
+    choices.forEach((choice, i) => {
+      const row = document.createElement('button');
+      row.className = 'choice-row' + (extraClass ? ' ' + extraClass : '');
+      row.innerHTML = `
+        <span class="choice-label">${CHOICE_LABELS[i]}</span>
+        <span class="choice-text">${formatFn ? formatFn(choice) : choice}</span>
+      `;
+      row.addEventListener('click', () => clickFn(choice, row, choicesDiv));
+      choicesDiv.appendChild(row);
+    });
+
+    return choicesDiv;
+  },
+
   // Q1: ヒント問題
   renderHintQuestion() {
     const hints = Quiz.getCurrentHints();
@@ -138,25 +208,19 @@ const GameUI = {
 
     hints.forEach((hint, i) => {
       const div = document.createElement('div');
+      div.className = 'hint-row';
       div.innerHTML = `<span class="hint-number-badge">${i + 1}</span><span class="hint-text">${hint}</span>`;
-      div.style.marginBottom = '10px';
       hintArea.appendChild(div);
     });
 
-    // 4択（元素名）
     const answerArea = document.getElementById('answer-area');
     answerArea.innerHTML = '';
-    const choicesDiv = document.createElement('div');
-    choicesDiv.className = 'answer-choices';
-
-    Quiz.choices.forEach(element => {
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn';
-      btn.textContent = element.name;
-      btn.addEventListener('click', () => this.handleHintAnswer(element.number, btn, choicesDiv));
-      choicesDiv.appendChild(btn);
-    });
-
+    const choicesDiv = this.createVerticalChoices(
+      Quiz.choices,
+      null,
+      el => el.name,
+      (el, row, container) => this.handleHintAnswer(el.number, row, container)
+    );
     answerArea.appendChild(choicesDiv);
   },
 
@@ -171,17 +235,12 @@ const GameUI = {
 
     const answerArea = document.getElementById('answer-area');
     answerArea.innerHTML = '';
-    const choicesDiv = document.createElement('div');
-    choicesDiv.className = 'answer-choices';
-
-    Quiz.choices.forEach(symbol => {
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn choice-btn-symbol';
-      btn.textContent = symbol;
-      btn.addEventListener('click', () => this.handleSymbolAnswer(symbol, btn, choicesDiv));
-      choicesDiv.appendChild(btn);
-    });
-
+    const choicesDiv = this.createVerticalChoices(
+      Quiz.choices,
+      'choice-row-symbol',
+      symbol => symbol,
+      (symbol, row, container) => this.handleSymbolAnswer(symbol, row, container)
+    );
     answerArea.appendChild(choicesDiv);
   },
 
@@ -196,24 +255,19 @@ const GameUI = {
 
     const answerArea = document.getElementById('answer-area');
     answerArea.innerHTML = '';
-    const choicesDiv = document.createElement('div');
-    choicesDiv.className = 'answer-choices';
-
-    Quiz.choices.forEach(num => {
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn choice-btn-number';
-      btn.textContent = num;
-      btn.addEventListener('click', () => this.handleNumberAnswer(num, btn, choicesDiv));
-      choicesDiv.appendChild(btn);
-    });
-
+    const choicesDiv = this.createVerticalChoices(
+      Quiz.choices,
+      'choice-row-number',
+      num => num,
+      (num, row, container) => this.handleNumberAnswer(num, row, container)
+    );
     answerArea.appendChild(choicesDiv);
   },
 
   // ===== 回答処理 =====
 
   disableChoices(choicesDiv) {
-    choicesDiv.querySelectorAll('.choice-btn').forEach(b => { b.disabled = true; });
+    choicesDiv.querySelectorAll('.choice-row').forEach(b => { b.disabled = true; });
   },
 
   // Q1回答
@@ -224,15 +278,14 @@ const GameUI = {
     if (result.correct) {
       selectedBtn.classList.add('correct');
       this.showFeedback('answer-area', true, `正解！ ${result.element.name}`, () => {
-        this.renderQuiz(); // → Q2へ
+        this.renderQuiz();
       });
     } else if (result.nextHint) {
       selectedBtn.classList.add('wrong');
       this.showFeedback('answer-area', false, '残念...次のヒントを見てみよう！', () => {
-        this.renderQuiz(); // 次のヒントでQ1再表示
+        this.renderQuiz();
       });
     } else {
-      // 3回外れ → 失敗
       selectedBtn.classList.add('wrong');
       this.showCorrectButton(choicesDiv, result.element.name);
       this.showFeedback('answer-area', false,
@@ -250,7 +303,7 @@ const GameUI = {
     if (result.correct) {
       selectedBtn.classList.add('correct');
       this.showFeedback('answer-area', true, `正解！ ${result.element.symbol}`, () => {
-        this.renderQuiz(); // → Q3へ
+        this.renderQuiz();
       });
     } else {
       selectedBtn.classList.add('wrong');
@@ -285,8 +338,10 @@ const GameUI = {
 
   // 正解ボタンをハイライト
   showCorrectButton(choicesDiv, correctText) {
-    choicesDiv.querySelectorAll('.choice-btn').forEach(b => {
-      if (b.textContent === correctText) b.classList.add('correct');
+    choicesDiv.querySelectorAll('.choice-row').forEach(b => {
+      if (b.querySelector('.choice-text').textContent === correctText) {
+        b.classList.add('correct');
+      }
     });
   },
 
@@ -318,7 +373,6 @@ const GameUI = {
     const gotCards = result.results.filter(r => r.allCorrect);
 
     if (gotCards.length === 0) {
-      // カード獲得なし → 結果画面へ直行
       this.showResult();
       return;
     }
@@ -377,13 +431,11 @@ const GameUI = {
       btnsDiv.appendChild(nextBtn);
     }
 
-    // カード登場後にボタンをフェードイン
     setTimeout(() => {
       btnsDiv.style.opacity = '1';
       btnsDiv.style.transform = 'translateY(0)';
     }, 1200);
 
-    // 全問正解チェック
     if (Storage.isAllPerfect() && !Storage.load().bonusObtained) {
       setTimeout(() => this.showBonus(), 2000);
     }
@@ -392,7 +444,6 @@ const GameUI = {
   // ===== ステージ結果画面 =====
   showResult() {
     const result = Quiz.getStageResult();
-    // カード0枚で直行した場合のみ保存（showStageCards経由の場合は既に保存済み）
     Storage.saveStageClear(result.stageId, result.totalStars);
 
     this.showScreen('screen-result');
@@ -417,7 +468,6 @@ const GameUI = {
       ${result.cardCount} / 3 カード獲得 (★ ${result.totalStars} / 9)
     `;
 
-    // 各元素カード表示
     const cardsDiv = document.getElementById('result-cards');
     cardsDiv.innerHTML = '';
     result.results.forEach(r => {
@@ -440,16 +490,14 @@ const GameUI = {
       cardsDiv.appendChild(wrapper);
     });
 
-    // ボタン
     const resultBtns = document.getElementById('result-buttons');
     resultBtns.innerHTML = `
-      <button class="btn btn-glass btn-large" onclick="GameUI.showStageSelect()">ステージ選択へ</button>
+      <button class="btn btn-glass btn-large" onclick="GameUI.showStageSelect()">マップへ</button>
       <button class="btn btn-glass btn-large" onclick="GameUI.showZukan()">図鑑を見る</button>
       <button class="btn btn-secondary btn-large" onclick="GameUI.startStage(${result.stageId})">もう一度</button>
       ${result.stageId < 39 ? `<button class="btn btn-primary btn-large" onclick="GameUI.startStage(${result.stageId + 1})">次のステージへ</button>` : ''}
     `;
 
-    // 全問正解チェック（カード0枚で直行した場合用）
     if (Storage.isAllPerfect() && !Storage.load().bonusObtained) {
       setTimeout(() => this.showBonus(), 1500);
     }
@@ -531,7 +579,6 @@ const GameUI = {
     }
     container.appendChild(mainTable);
 
-    // ランタノイド・アクチノイド
     const lanActContainer = document.createElement('div');
     lanActContainer.className = 'periodic-table-lan-act';
 
@@ -675,5 +722,6 @@ window.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+  GameUI.initParticles();
   GameUI.showTitle();
 });

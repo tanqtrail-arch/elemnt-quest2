@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>エレメントクエスト - 元素を当てろ！</title>
-  <meta name="theme-color" content="#6c63ff">
+  <meta name="theme-color" content="#1a1a2e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
@@ -14,9 +14,9 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="bg-grid" aria-hidden="true"></div>
-  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
-  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+  <!-- 浮遊パーティクル -->
+  <div class="floating-particles" id="floating-particles" aria-hidden="true"></div>
+
   <!-- タイトル画面 -->
   <div id="screen-title" class="screen active">
     <div class="title-container">
@@ -39,21 +39,28 @@
     </div>
   </div>
 
-  <!-- ステージ選択画面 -->
+  <!-- ステージ選択（冒険マップ） -->
   <div id="screen-stage-select" class="screen">
-    <div class="screen-header">
-      <button class="btn btn-back" onclick="GameUI.showTitle()">← もどる</button>
-      <h2>ステージ選択</h2>
-      <div class="header-spacer"></div>
+    <div class="map-header">
+      <h2 class="map-title">冒険マップ</h2>
+      <p class="map-subtitle">全問正解でパーフェクト！</p>
     </div>
-    <div class="stage-grid" id="stage-grid"></div>
+    <div class="map-nav-buttons">
+      <button class="btn btn-gold btn-nav" onclick="GameUI.showZukan()">
+        <span class="nav-icon">📖</span> 元素図鑑 <span class="nav-badge" id="nav-zukan-count">0/118</span>
+      </button>
+      <button class="btn btn-glass btn-nav" onclick="GameUI.showTitle()">
+        <span class="nav-icon">🏠</span> タイトルへ
+      </button>
+    </div>
+    <div class="stage-list" id="stage-grid"></div>
   </div>
 
   <!-- クイズ画面 -->
   <div id="screen-quiz" class="screen">
-    <div class="screen-header">
-      <button class="btn btn-back" onclick="GameUI.confirmQuit()">✕ やめる</button>
-      <h2 id="quiz-stage-title"></h2>
+    <div class="quiz-top-bar">
+      <button class="btn btn-back" onclick="GameUI.confirmQuit()">✕</button>
+      <h2 id="quiz-stage-title" class="quiz-stage-name"></h2>
       <div class="quiz-progress" id="quiz-progress"></div>
     </div>
     <div class="quiz-container">
@@ -86,7 +93,7 @@
   <!-- 図鑑画面 -->
   <div id="screen-zukan" class="screen">
     <div class="screen-header">
-      <button class="btn btn-back" onclick="GameUI.showTitle()">← もどる</button>
+      <button class="btn btn-back" onclick="GameUI.showStageSelect()">← もどる</button>
       <h2>元素図鑑</h2>
       <div class="zukan-count" id="zukan-count"></div>
     </div>

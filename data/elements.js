@@ -80,6 +80,49 @@ const STAGE_NAMES = [
   "最新の元素II"           // 39: Mc, Lv, Ts
 ];
 
+// ステージアイコン・テーマ
+const STAGE_THEMES = [
+  { emoji: "🌿", bg: "#1a6b3c", accent: "#2d8a4e" },
+  { emoji: "🪶", bg: "#5c6d1f", accent: "#7a8f2e" },
+  { emoji: "💨", bg: "#1a5c6b", accent: "#2889a0" },
+  { emoji: "🔥", bg: "#8b3a1a", accent: "#c45a2c" },
+  { emoji: "🏔", bg: "#5a4a2a", accent: "#8a7040" },
+  { emoji: "🎨", bg: "#6b3a6b", accent: "#9a5a9a" },
+  { emoji: "🚪", bg: "#4a4a6a", accent: "#6a6a9a" },
+  { emoji: "⚔️", bg: "#4a5a6a", accent: "#6a8a9a" },
+  { emoji: "⛏️", bg: "#6a4a3a", accent: "#9a6a4a" },
+  { emoji: "🔧", bg: "#5a5a4a", accent: "#8a8a6a" },
+  { emoji: "💎", bg: "#3a5a4a", accent: "#5a8a6a" },
+  { emoji: "🌊", bg: "#1a4a6a", accent: "#2a7aaa" },
+  { emoji: "🕯️", bg: "#7a3a2a", accent: "#aa5a3a" },
+  { emoji: "🛡️", bg: "#5a5a6a", accent: "#7a7a9a" },
+  { emoji: "✨", bg: "#6a5a2a", accent: "#aa8a3a" },
+  { emoji: "👑", bg: "#7a6a2a", accent: "#baa03a" },
+  { emoji: "🔩", bg: "#5a4a4a", accent: "#8a6a6a" },
+  { emoji: "🌀", bg: "#3a4a6a", accent: "#5a6a9a" },
+  { emoji: "🏋️", bg: "#5a3a4a", accent: "#8a5a6a" },
+  { emoji: "🔮", bg: "#5a2a5a", accent: "#8a4a8a" },
+  { emoji: "🔮", bg: "#5a2a6a", accent: "#8a4a9a" },
+  { emoji: "🔮", bg: "#4a2a5a", accent: "#7a4a8a" },
+  { emoji: "🔮", bg: "#6a2a5a", accent: "#9a4a8a" },
+  { emoji: "🔮", bg: "#5a3a5a", accent: "#8a5a8a" },
+  { emoji: "🌋", bg: "#7a3a2a", accent: "#aa5a4a" },
+  { emoji: "🏆", bg: "#5a5a3a", accent: "#8a8a5a" },
+  { emoji: "💰", bg: "#7a6a1a", accent: "#baa02a" },
+  { emoji: "⚗️", bg: "#4a4a4a", accent: "#7a7a7a" },
+  { emoji: "☢️", bg: "#4a5a3a", accent: "#6a8a4a" },
+  { emoji: "☢️", bg: "#5a4a3a", accent: "#8a6a4a" },
+  { emoji: "⚛️", bg: "#3a4a5a", accent: "#5a7a8a" },
+  { emoji: "🧪", bg: "#4a3a5a", accent: "#7a5a8a" },
+  { emoji: "🧪", bg: "#5a3a5a", accent: "#8a5a8a" },
+  { emoji: "🏅", bg: "#6a5a3a", accent: "#9a8a5a" },
+  { emoji: "🏅", bg: "#5a5a4a", accent: "#8a8a6a" },
+  { emoji: "🚀", bg: "#3a3a6a", accent: "#5a5a9a" },
+  { emoji: "🚀", bg: "#3a4a6a", accent: "#5a6a9a" },
+  { emoji: "🌟", bg: "#4a4a5a", accent: "#6a6a8a" },
+  { emoji: "🌟", bg: "#5a4a5a", accent: "#8a6a8a" },
+];
+
 const STAGES = [];
 for (let i = 0; i < 39; i++) {
   const startNum = i * 3; // ALL_ELEMENTS配列のインデックス
