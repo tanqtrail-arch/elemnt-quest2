@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>エレメントクエスト - 元素を当てろ！</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- タイトル画面 -->
+  <div id="screen-title" class="screen active">
+    <div class="title-container">
+      <h1 class="game-title">
+        <span class="title-icon">⚛</span>
+        <span>エレメントクエスト</span>
+      </h1>
+      <p class="title-subtitle">元素を当てろ！全39ステージ</p>
+      <div class="title-buttons">
+        <button class="btn btn-primary btn-large" onclick="GameUI.showStageSelect()">ゲームスタート</button>
+        <button class="btn btn-secondary btn-large" onclick="GameUI.showZukan()">図鑑</button>
+      </div>
+      <div id="title-progress" class="title-progress"></div>
+    </div>
+  </div>
+
+  <!-- ステージ選択画面 -->
+  <div id="screen-stage-select" class="screen">
+    <div class="screen-header">
+      <button class="btn btn-back" onclick="GameUI.showTitle()">← もどる</button>
+      <h2>ステージ選択</h2>
+      <div class="header-spacer"></div>
+    </div>
+    <div class="stage-grid" id="stage-grid"></div>
+  </div>
+
+  <!-- クイズ画面 -->
+  <div id="screen-quiz" class="screen">
+    <div class="screen-header">
+      <button class="btn btn-back" onclick="GameUI.confirmQuit()">✕ やめる</button>
+      <h2 id="quiz-stage-title"></h2>
+      <div class="quiz-progress" id="quiz-progress"></div>
+    </div>
+    <div class="quiz-container">
+      <div class="quiz-element-progress" id="quiz-element-progress"></div>
+      <div class="hint-area" id="hint-area"></div>
+      <div class="answer-area" id="answer-area"></div>
+    </div>
+  </div>
+
+  <!-- カード獲得演出 -->
+  <div id="screen-card-get" class="screen">
+    <div class="card-get-container">
+      <div class="card-get-flash"></div>
+      <p class="card-get-label">元素カード獲得！</p>
+      <div class="card-get-card" id="card-get-display"></div>
+      <button class="btn btn-primary btn-large" id="card-get-next-btn">次へ</button>
+    </div>
+  </div>
+
+  <!-- ステージ結果画面 -->
+  <div id="screen-result" class="screen">
+    <div class="result-container">
+      <h2 id="result-title"></h2>
+      <div class="result-score" id="result-score"></div>
+      <div class="result-cards" id="result-cards"></div>
+      <div class="result-buttons">
+        <button class="btn btn-secondary btn-large" onclick="GameUI.showStageSelect()">ステージ選択へ</button>
+        <button class="btn btn-primary btn-large" id="result-next-btn" style="display:none">次のステージへ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 図鑑画面 -->
+  <div id="screen-zukan" class="screen">
+    <div class="screen-header">
+      <button class="btn btn-back" onclick="GameUI.showTitle()">← もどる</button>
+      <h2>元素図鑑</h2>
+      <div class="zukan-count" id="zukan-count"></div>
+    </div>
+    <div class="zukan-grid" id="zukan-grid"></div>
+  </div>
+
+  <!-- 118番ボーナス演出 -->
+  <div id="screen-bonus" class="screen">
+    <div class="bonus-container">
+      <div class="bonus-particles" id="bonus-particles"></div>
+      <h2 class="bonus-title">全ステージ制覇！</h2>
+      <p class="bonus-subtitle">特別な元素カードを獲得しました</p>
+      <div class="bonus-card" id="bonus-card-display"></div>
+      <p class="bonus-element-name">No.118 オガネソン (Og)</p>
+      <p class="bonus-message">おめでとう！すべての元素をマスターしました！</p>
+      <button class="btn btn-primary btn-large" onclick="GameUI.showZukan()">図鑑を見る</button>
+    </div>
+  </div>
+
+  <!-- 確認ダイアログ -->
+  <div id="dialog-overlay" class="dialog-overlay" style="display:none">
+    <div class="dialog-box">
+      <p id="dialog-message"></p>
+      <div class="dialog-buttons">
+        <button class="btn btn-secondary" id="dialog-cancel">キャンセル</button>
+        <button class="btn btn-primary" id="dialog-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="data/elements-part1.js"></script>
+  <script src="data/elements-part2.js"></script>
+  <script src="data/elements-part3.js"></script>
+  <script src="data/elements.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
