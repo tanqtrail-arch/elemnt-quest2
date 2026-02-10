@@ -269,10 +269,9 @@ const GameUI = {
 
     if (result.correct) {
       selectedBtn.classList.add('correct');
-      // 全問正解 → カード獲得！
       Storage.addCard(result.element.number);
-      this.showFeedback('answer-area', true, '正解！ 3問全問正解！', () => {
-        this.showCardGet(result.element);
+      this.showFeedback('answer-area', true, '正解！ 3問全問正解！ カード獲得！', () => {
+        this.proceedToNext();
       });
     } else {
       selectedBtn.classList.add('wrong');
@@ -307,27 +306,86 @@ const GameUI = {
     if (hasMore) {
       this.renderQuiz();
     } else {
-      this.showResult();
+      this.showStageCards();
     }
   },
 
-  // ===== カード獲得演出 =====
-  showCardGet(element) {
+  // ===== ステージ終了後のカード獲得演出 =====
+  showStageCards() {
+    const result = Quiz.getStageResult();
+    Storage.saveStageClear(result.stageId, result.totalStars);
+
+    const gotCards = result.results.filter(r => r.allCorrect);
+
+    if (gotCards.length === 0) {
+      // カード獲得なし → 結果画面へ直行
+      this.showResult();
+      return;
+    }
+
     this.showScreen('screen-card-get');
+
+    const label = document.getElementById('card-get-label');
+    label.textContent = gotCards.length === 3
+      ? 'パーフェクト！ 全カード獲得！'
+      : `${gotCards.length} 枚のカードを獲得！`;
+
     const display = document.getElementById('card-get-display');
-    display.innerHTML = this.renderElementCard(element, true);
+    display.innerHTML = '';
 
-    const label = document.querySelector('.card-get-label');
-    if (label) label.textContent = `元素カード獲得！ ★★★`;
+    result.results.forEach(r => {
+      const el = ALL_ELEMENTS.find(e => e.number === r.elementNumber);
+      const item = document.createElement('div');
+      item.className = 'card-get-item';
+      const got = r.allCorrect;
+      item.innerHTML = `
+        ${this.renderElementCard(el, got)}
+        <div class="card-get-item-label ${got ? 'got' : ''}">
+          ${got ? '★★★ GET!' : '×'}
+        </div>
+      `;
+      if (!got) {
+        item.querySelector('.element-card').style.opacity = '0.3';
+      }
+      display.appendChild(item);
+    });
 
-    document.getElementById('card-get-next-btn').onclick = () => {
-      this.proceedToNext();
-    };
+    // ボタン
+    const btnsDiv = document.getElementById('card-get-buttons');
+    btnsDiv.innerHTML = '';
+
+    const zukanBtn = document.createElement('button');
+    zukanBtn.className = 'btn btn-secondary btn-large';
+    zukanBtn.textContent = '図鑑を見る';
+    zukanBtn.addEventListener('click', () => this.showZukan());
+    btnsDiv.appendChild(zukanBtn);
+
+    const resultBtn = document.createElement('button');
+    resultBtn.className = 'btn btn-large';
+    resultBtn.textContent = 'リザルトを見る';
+    resultBtn.style.background = 'var(--warning)';
+    resultBtn.style.color = '#000';
+    resultBtn.addEventListener('click', () => this.showResult());
+    btnsDiv.appendChild(resultBtn);
+
+    if (result.stageId < 39 && Storage.isStageUnlocked(result.stageId + 1)) {
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'btn btn-primary btn-large';
+      nextBtn.textContent = '次のステージへ';
+      nextBtn.addEventListener('click', () => this.startStage(result.stageId + 1));
+      btnsDiv.appendChild(nextBtn);
+    }
+
+    // 全問正解チェック
+    if (Storage.isAllPerfect() && !Storage.load().bonusObtained) {
+      setTimeout(() => this.showBonus(), 2000);
+    }
   },
 
   // ===== ステージ結果画面 =====
   showResult() {
     const result = Quiz.getStageResult();
+    // カード0枚で直行した場合のみ保存（showStageCards経由の場合は既に保存済み）
     Storage.saveStageClear(result.stageId, result.totalStars);
 
     this.showScreen('screen-result');
@@ -379,11 +437,12 @@ const GameUI = {
     const resultBtns = document.getElementById('result-buttons');
     resultBtns.innerHTML = `
       <button class="btn btn-secondary btn-large" onclick="GameUI.showStageSelect()">ステージ選択へ</button>
+      <button class="btn btn-secondary btn-large" onclick="GameUI.showZukan()">図鑑を見る</button>
       <button class="btn btn-large" onclick="GameUI.startStage(${result.stageId})" style="background:var(--warning);color:#000">もう一度</button>
       ${result.stageId < 39 ? `<button class="btn btn-primary btn-large" onclick="GameUI.startStage(${result.stageId + 1})">次のステージへ</button>` : ''}
     `;
 
-    // 全問正解チェック
+    // 全問正解チェック（カード0枚で直行した場合用）
     if (Storage.isAllPerfect() && !Storage.load().bonusObtained) {
       setTimeout(() => this.showBonus(), 1500);
     }

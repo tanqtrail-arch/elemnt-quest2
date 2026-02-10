@@ -594,19 +594,51 @@ body {
   text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
-/* カード獲得時の大きいカード */
-.card-get-card .element-card {
-  width: 200px;
-  height: 260px;
-  animation: cardGetAppear 0.6s ease;
+/* カード獲得時のカード群 */
+.card-get-cards {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.card-get-card .element-card .element-card-symbol {
-  font-size: 3.5rem;
+.card-get-cards .card-get-item {
+  text-align: center;
 }
 
-.card-get-card .element-card .element-card-name {
-  font-size: 1.2rem;
+.card-get-cards .element-card {
+  width: 160px;
+  height: 210px;
+  animation: cardGetAppear 0.6s ease backwards;
+}
+
+.card-get-cards .card-get-item:nth-child(2) .element-card { animation-delay: 0.3s; }
+.card-get-cards .card-get-item:nth-child(3) .element-card { animation-delay: 0.6s; }
+
+.card-get-cards .element-card .element-card-symbol {
+  font-size: 2.8rem;
+}
+
+.card-get-cards .element-card .element-card-name {
+  font-size: 1rem;
+}
+
+.card-get-cards .card-get-item-label {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.card-get-cards .card-get-item-label.got {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.card-get-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 @keyframes cardGetAppear {
