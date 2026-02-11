@@ -1017,6 +1017,43 @@ body {
   flex-shrink: 0;
 }
 
+.hint-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 8px 0;
+  animation: hintAppear 0.5s var(--ease-out);
+}
+
+.stage-icon-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.stage-stars-text {
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.stage-challenge {
+  color: var(--accent-light);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.choice-row-symbol .choice-text {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.choice-row-number .choice-text {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
 /* Answer Area */
 .answer-area {
   display: flex;
